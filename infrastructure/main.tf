@@ -109,6 +109,55 @@ resource "aws_security_group" "ssh" {
   }
 }
 
+# =====================================
+# SSH Key Pair - Clé d'accès au serveur
+# =====================================
+resource "aws_key_pair" "sovereign" {
+  key_name   = "${var.project_name}-key"
+  public_key = file("~/.ssh/sovereign-key.pub")
+
+  tags = {
+    Name = "${var.project_name}-key"
+    Project = var.project_name
+  }
+}
+
+
+# ==================================
+# Data Source - AMI Ubuntu 22.04 LTS
+# ==================================
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical (éditeur officiel Ubuntu)
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+
+# ================================
+# EC2 - Serveur Ubuntu
+# ================================
+resource "aws_instance" "main" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.public.id
+  key_name                    = aws_key_pair.sovereign.key_name
+  vpc_security_group_ids      = [aws_security_group.ssh.id]
+  associate_public_ip_address = true
+
+  tags = {
+    Name    = "${var.project_name}-server"
+    Project = var.project_name
+  }
+}
 
 # Bonne question — avant de lancer quoi que ce soit, tu dois comprendre ce que tu as écrit. Voilà l'explication     # complète de chaque ressource :
 
