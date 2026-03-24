@@ -16,7 +16,7 @@ provider "aws" {
 # ================================
 
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = var.vpc_cidr
 
   tags = {
     Name    = "${var.project_name}-vpc"
@@ -30,7 +30,7 @@ resource "aws_vpc" "main" {
 
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
+  cidr_block              = var.subnet_cidr
   map_public_ip_on_launch = true
 
   tags = {
@@ -114,10 +114,10 @@ resource "aws_security_group" "ssh" {
 # =====================================
 resource "aws_key_pair" "sovereign" {
   key_name   = "${var.project_name}-key"
-  public_key = file("~/.ssh/sovereign-key.pub")
+  public_key = file(var.ssh_key_path)
 
   tags = {
-    Name = "${var.project_name}-key"
+    Name    = "${var.project_name}-key"
     Project = var.project_name
   }
 }
@@ -147,7 +147,7 @@ data "aws_ami" "ubuntu" {
 # ================================
 resource "aws_instance" "main" {
   ami                         = data.aws_ami.ubuntu.id
-  instance_type               = "t3.micro"
+  instance_type               = var.instance_type
   subnet_id                   = aws_subnet.public.id
   key_name                    = aws_key_pair.sovereign.key_name
   vpc_security_group_ids      = [aws_security_group.ssh.id]
